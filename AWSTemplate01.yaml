@@ -3,7 +3,7 @@
 # as well as the creation of the network infrastructure (VPC, subnet, etc) that
 # was only necessary for the EC2 instance.
 
-AWSTemplateFormatVersion: 2023-10-02
+AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   AWS CloudFormation Sample Template to create lab resources. Creates a DynamoDB
   Table, an SNS Topic, and a Lambda Function.
@@ -34,6 +34,19 @@ Parameters:
   #   Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
   #   Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
 Resources:
+  MyDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DynamoPractice
+      AttributeDefinitions:
+        - AttributeName: BackupVerificationKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: BackupVerificationKey
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   # VPC: # don't need for DynamoDB table
   #   Type: 'AWS::EC2::VPC'
   #   Properties:
@@ -120,19 +133,6 @@ Resources:
   #         Value: WA-Lab-Instance
   #       - Key: workload
   #         Value: myapp
-  MyDynamoDBTable:
-  Type: AWS::DynamoDB::Table
-  Properties:
-    TableName: DynamoPractice
-    AttributeDefinitions:
-      - AttributeName: BackupVerificationKey
-        AttributeType: S
-    KeySchema:
-      - AttributeName: BackupVerificationKey
-        KeyType: HASH
-    ProvisionedThroughput:
-      ReadCapacityUnits: 5
-      WriteCapacityUnits: 5
   SNSTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
@@ -158,7 +158,7 @@ Resources:
       Timeout: '60'
       Code:
         S3Bucket: backup-lab-aws-bucket # changed
-        S3Key: lambda_function01.zip # changed
+        S3Key: lambda_function.zip # changed
   LambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -181,6 +181,12 @@ Resources:
           PolicyDocument:
             Version: 2012-10-17
             Statement:
+              - Sid: S3ReadAccess
+                Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource: 
+                  - !Sub "arn:aws:s3:::backup-lab-aws-bucket/*"
               - Sid: VisualEditor0
                 Effect: Allow
                 Action:
